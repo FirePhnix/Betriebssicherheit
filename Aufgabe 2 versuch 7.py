@@ -20,6 +20,7 @@ class BLOCK:
     def render(self, dot, classname):
         dot.node(self.name, label=self.name)
         dot.edge(self.name, classname, style='invis')
+        
 class SEQBLOCK:
     def __init__(self, name):
         self.blocks = []
