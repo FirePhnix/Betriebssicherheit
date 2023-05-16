@@ -17,9 +17,9 @@ class BLOCK:
     def rel(self):
         return self.reliability
 
-    def render(self, dot):
+    def render(self, dot, classname):
         dot.node(self.name, label=self.name)
-
+        dot.edge(self.name, classname, style='invis')
 class SEQBLOCK:
     def __init__(self, name):
         self.blocks = []
@@ -40,14 +40,11 @@ class SEQBLOCK:
             reliability *= block.rel()
         return reliability
 
-    def render(self, dot):
+    def render(self, dot, classname):
         with dot.subgraph() as sg:
-            sg.node(self.name, shape='box', label=self.name)
+            sg.node(classname, shape='box', label=self.name, style='rounded')
             for block in self.blocks:
-                block.render(sg)
-
-            for i in range(len(self.blocks) - 1):
-                dot.edge(self.blocks[i].getname(), self.blocks[i + 1].getname())
+                block.render(sg, classname)
 
 class PARBLOCK:
     def __init__(self, name):
@@ -69,11 +66,11 @@ class PARBLOCK:
             availability *= (1.0 - block.rel())
         return 1.0 - availability
 
-    def render(self, dot):
+    def render(self, dot, classname):
         with dot.subgraph() as sg:
-            sg.node(self.name, shape='box', label=self.name)
+            sg.node(classname, shape='box', label=self.name, style='rounded')
             for block in self.blocks:
-                block.render(sg)
+                block.render(sg, classname)
 
 class ZuverlaessigkeitsDiagramm:
     def __init__(self, root):
@@ -81,7 +78,7 @@ class ZuverlaessigkeitsDiagramm:
 
     def print(self):
         dot = graphviz.Digraph(comment='Zuverlässigkeitsdiagramm')
-        self.root.render(dot)
+        self.root.render(dot, self.root.name)
         dot.format = 'png'
         dot.render('zuverlaessigkeitsdiagramm', view=True)
 
