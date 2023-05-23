@@ -42,10 +42,12 @@ class SEQBLOCK:
 
     def render(self, dot):
         dot.attr(rankdir='LR')
-        with dot.subgraph() as sg:
+        with dot.subgraph(name='cluster_seq') as sg:
             sg.attr(label=self.name)
+            
             for block in self.blocks:
                 block.render(sg)
+                seq_list.append(block.getname())
 
 class PARBLOCK:
     def __init__(self, name):
@@ -68,10 +70,12 @@ class PARBLOCK:
         return 1.0 - availability
 
     def render(self, dot):
-        with dot.subgraph() as sg:
+        with dot.subgraph(name='cluster_par') as sg:
             sg.attr(label=self.name)
+            
             for block in self.blocks:
                 block.render(sg)
+                par_list.append(block.getname())
 
 class ZuverlaessigkeitsDiagramm:
     def __init__(self, root):
@@ -80,37 +84,34 @@ class ZuverlaessigkeitsDiagramm:
     def print(self):
         dot = graphviz.Digraph(comment='Reliability Diagram')
         self.root.render(dot)
-        
-        # Find simple blocks and create edges
-        simple_blocks = []
-        for block in self.root.blocks:
-            if isinstance(block, BLOCK):
-                simple_blocks.append(block)
 
-        for simple_block in simple_blocks:
-            dot.edge("Eingang", simple_block.name)
-            dot.edge(simple_block.name, "Ausgang")
+        input_name = "Eingang"
+        output_name = "Ausgang"
+
+        for block in par_list:
+            dot.edge(input_name, block)
+            dot.edge(block, output_name)
 
         dot.format = 'png'
         dot.render('reliability_diagram', view=True)
 
-# Erstellen der Block-Objekte
 E = BLOCK('Eingang', 0.99)
 R1 = BLOCK('Rechner1', 0.99)
 R2 = BLOCK('Rechner2', 0.99)
 A = BLOCK('Ausgang', 0.99)
 
-# Erstellen der Container (SEQBLOCK und PARBLOCK)
 seq = SEQBLOCK("Alle")
 par = PARBLOCK("Alle_Rechner")
 
-# Verschachteln der Objekte
 par.append(R1)
 par.append(R2)
 
 seq.append(E)
 seq.append(par)
 seq.append(A)
+
+par_list = []
+seq_list = []
 
 system_reliability = seq.rel()
 print("Zuverlässigkeit des Systems:", system_reliability)
