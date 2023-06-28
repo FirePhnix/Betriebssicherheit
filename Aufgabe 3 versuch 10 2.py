@@ -12,21 +12,15 @@ class ANDNODE:
         self.nodes.append(node)
     
     def print(self, graph):
-        # Knoten innerhalb des And-Node platzieren
+        # Hintergrund für And-Node erstellen
+        graph.node(self.name, shape='rect', style='filled', fillcolor='lightgray')
+        # Knoten innerhalb der And-Node platzieren
         for node in self.nodes:
             node.print(graph)
-
-        # Verbindungen erstellen
-        for i, node in enumerate(self.nodes):
-            # Verbindung vom aktuellen Knoten zum nächsten Knoten oder zu 1
-            next_node = self.nodes[i + 1] if i + 1 < len(self.nodes) else '1'
-            next_node_name = next_node.name if isinstance(next_node, BDDEVENT) else '1'
-            graph.edge(node.name, next_node_name, label='1')
-
-        # Verbindung vom And-Node zum 0-Endblock
-        for node in self.nodes:
-            graph.edge(self.name, node.name, label='0')
-
+            # Verbindung vom 0-Ausgang zum aktuellen Knoten
+            graph.edge('0', node.name, label='0')
+            # Verbindung vom 1-Ausgang zum 1-Endblock
+            graph.edge(node.name, '1')
     
     def topdown(self):
         # ...
@@ -43,15 +37,15 @@ class ORNODE:
         self.nodes.append(node)
     
     def print(self, graph):
-        # Knoten innerhalb des Or-Node platzieren
+        # Hintergrund für Or-Node erstellen
+        graph.node(self.name, shape='rect', style='filled', fillcolor='lightgray')
+        # Knoten innerhalb der Or-Node platzieren
         for node in self.nodes:
             node.print(graph)
-        # Verbindungen erstellen
-        for node in self.nodes:
-            # Verbindung vom Or-Node zum aktuellen Knoten
-            graph.edge(self.name, node.name, label='0')
-        # Verbindung vom Or-Node zum 1-Endblock
-        graph.edge(self.name, '1')
+            # Verbindung vom 0-Ausgang zum nächsten Knoten
+            graph.edge('0', node.name, label='0')
+            # Verbindung vom 1-Ausgang zum 1-Endblock
+            graph.edge(node.name, '1')
     
     def topdown(self):
         # ...
@@ -62,7 +56,6 @@ class ORNODE:
 class EVENT:
     def __init__(self, name):
         self.name = name
-        self.partition = name
     
     def print(self, graph):
         # Den Event-Knoten als Kreis darstellen
@@ -86,16 +79,16 @@ class BDDEVENT:
         self.one = node
     
     def print(self, graph):
-        # Knoten als Kreis darstellen
-        graph.node(self.name, shape='circle')
+        # Knoten als rechteckige Box darstellen
+        graph.node(self.name, shape='box', label='E{}'.format(self.name))
         if self.zero:
             # Kante vom aktuellen Knoten zum Ausgang "0"
-            graph.edge(self.zero.name, self.name, label='0')
+            graph.edge(self.name, self.zero.name, label='0', tailport='s', headport='n')
             if not isinstance(self.zero, EVENT):
                 self.zero.print(graph)
         if self.one:
             # Kante vom aktuellen Knoten zum Ausgang "1"
-            graph.edge(self.one, self.name, label='1')
+            graph.edge(self.name, self.one.name, label='1', tailport='s', headport='n')
             if not isinstance(self.one, EVENT):
                 self.one.print(graph)
     
@@ -138,28 +131,30 @@ def convert_to_bdd(node):
 
 
 # Fehlerbaum erstellen (Beispiel)
+TOP = ANDNODE('TOP')
+A = ORNODE('A')
 E1 = EVENT('1')
 E2 = EVENT('2')
 E3 = EVENT('3')
 
-A = ANDNODE('A')
+TOP.add(A)
+TOP.add(E1)
 A.add(E2)
 A.add(E3)
-
-OR = ORNODE('OR')
-OR.add(A)
-OR.add(E1)
 
 
 # Digraph für den BDD erstellen
 bdd_graph = graphviz.Digraph()
 
 # BDD graphisch darstellen
-OR.print(bdd_graph)
+TOP.print(bdd_graph)
 
-# Endblöcke hinzufügen
-bdd_graph.node('0', shape='square')
-bdd_graph.node('1', shape='square')
+# Quadratische Endblöcke hinzufügen
+# Quadratische Endblöcke hinzufügen
+bdd_graph.node('0', shape='square', pos='0,-1!')
+bdd_graph.node('1', shape='box', label='E1', pos='1,-2!')
+bdd_graph.edge('1', '0', label='0', tailport='s', headport='n', weight='10')
+
 
 # Die Ausgabe der Graphviz-Datei anzeigen
 print(bdd_graph.source)
@@ -167,7 +162,7 @@ bdd_graph.render('bdd_graph', format='png', view=True)
 
 
 # BDD erstellen
-bdd_root = convert_to_bdd(OR)
-bdd_root.print(bdd_graph)
+bdd_top = convert_to_bdd(TOP)
+bdd_top.print(bdd_graph)
 print(bdd_graph.source)
 bdd_graph.render('bdd_graph', format='png', view=True)
